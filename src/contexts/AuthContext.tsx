@@ -68,30 +68,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, name: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) throw error;
-
-    if (data.user) {
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
+    console.log('Début de l\'inscription avec:', { email, name });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      console.log('Réponse de signUp:', { data, error });
+  
+      if (error) {
+        console.error('Erreur d\'authentification:', error);
+        throw error;
+      }
+  
+      if (data.user) {
+        console.log('Création du profil pour user ID:', data.user.id);
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .insert({
             id: data.user.id,
-            email: data.user.email,
-            name,
+            email: email,
+            name: name,
             role: 'user',
-          },
-        ]);
-
-      if (profileError) throw profileError;
+          })
+          .select()
+          .single();
+  
+        if (profileError) {
+          console.error('Erreur de création de profil:', profileError);
+          throw profileError;
+        }
+  
+        console.log('Profil créé avec succès:', profileData);
+        setUser(profileData);
+        return profileData;
+      }
+    } catch (error) {
+      console.error('Erreur complète lors de l\'inscription:', error);
+      throw error;
     }
   };
-
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
